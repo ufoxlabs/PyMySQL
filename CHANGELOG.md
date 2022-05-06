@@ -1,5 +1,12 @@
 # Changes
 
+## v1.0.2+ufox1
+
+release date: 2022-05-06
+
+* Requiring TLS connections when `ssl_verify_cert` is True or "required"
+
+
 ## v1.0.2
 
 Release date: 2021-01-09
