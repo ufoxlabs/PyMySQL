@@ -132,7 +132,8 @@ class Connection:
     :param ssl_cert: Path to the file that contains a PEM-formatted client certificate
     :param ssl_disabled: A boolean value that disables usage of TLS
     :param ssl_key: Path to the file that contains a PEM-formatted private key for the client certificate
-    :param ssl_verify_cert: Set to true to check the validity of server certificates
+    :param ssl_verify_cert: Set to True, "required", or "optional" to check the server certificate's
+        validity.
     :param ssl_verify_identity: Set to true to check the server's identity
     :param read_default_group: Group to read from in the configuration file.
     :param autocommit: Autocommit mode. None means use server default. (default: False)
@@ -843,12 +844,19 @@ class Connection:
             "<iIB23s", self.client_flag, MAX_PACKET_LEN, charset_id, b""
         )
 
-        if self.ssl and self.server_capabilities & CLIENT.SSL:
-            self.write_packet(data_init)
+        if self.ssl:
+            if self.server_capabilities & CLIENT.SSL:
+                self.write_packet(data_init)
 
-            self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
-            self._rfile = self._sock.makefile("rb")
-            self._secure = True
+                self._sock = self.ctx.wrap_socket(self._sock, server_hostname=self.host)
+                self._rfile = self._sock.makefile("rb")
+                self._secure = True
+            elif self.ctx.verify_mode == ssl.CERT_REQUIRED:
+                raise err.OperationalError(
+                    CR.CR_SSL_CONNECTION_ERROR,
+                    "SSL connection error: "
+                    "SSL is required, but the server does not support it",
+                )
 
         data = data_init + self.user + b"\0"
 
